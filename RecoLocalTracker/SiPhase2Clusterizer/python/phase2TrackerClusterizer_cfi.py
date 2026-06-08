@@ -5,7 +5,8 @@ from RecoLocalTracker.SiPhase2Clusterizer.default_phase2TrackerClusterizer_cfi i
 siPhase2Clusters = default_phase2TrackerClusterizer.clone(
     src = "mix:Tracker",
     maxClusterSize = 0, # was 8
-    maxNumberClusters = 0
+    maxNumberClusters = 0,
+    handleBadStrips = False,
 )
 
 from Configuration.ProcessModifiers.premix_stage2_cff import premix_stage2

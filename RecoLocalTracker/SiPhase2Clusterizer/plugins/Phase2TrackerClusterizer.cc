@@ -28,6 +28,10 @@
 #include <vector>
 #include <memory>
 
+// to access bad strips
+#include "CondFormats/DataRecord/interface/SiPhase2OuterTrackerCondDataRecords.h"
+#include "CondFormats/SiStripObjects/interface/SiStripBadStrip.h"
+
 class Phase2TrackerClusterizer : public edm::stream::EDProducer<> {
 public:
   explicit Phase2TrackerClusterizer(const edm::ParameterSet& conf);
@@ -41,21 +45,35 @@ private:
   std::unique_ptr<Phase2TrackerClusterizerAlgorithm> clusterizer_;
 #endif
   edm::EDGetTokenT<edm::DetSetVector<Phase2TrackerDigi> > token_;
+
+  // bad strip access
+  bool handleBadStrips_;
+  // <type of object from the payload, record name>
+  edm::ESGetToken<SiStripBadStrip, SiPhase2OuterTrackerBadStripRcd> badStripToken_;
+  // const SiStripBadStrip* badStripPayload_;
+
 };
 
 /*
      * Initialise the producer
      */
-
+// RB: no need to pass edm::ConsumesCollector iC because this is already a framework module
+// would I need to do it in Phase2TrackerClusterSequentialAlgorithm ? I think so.
 Phase2TrackerClusterizer::Phase2TrackerClusterizer(edm::ParameterSet const& conf)
     :
 #ifdef VERIFY_PH2_TK_CLUS
       clusterizer_(new Phase2TrackerClusterizerAlgorithm(conf.getParameter<unsigned int>("maxClusterSize"),
                                                          conf.getParameter<unsigned int>("maxNumberClusters"))),
 #endif
-      token_(consumes<edm::DetSetVector<Phase2TrackerDigi> >(conf.getParameter<edm::InputTag>("src"))) {
-  produces<Phase2TrackerCluster1DCollectionNew>();
-}
+  token_(consumes<edm::DetSetVector<Phase2TrackerDigi> >(conf.getParameter<edm::InputTag>("src"))),
+  handleBadStrips_(conf.getParameter<bool>("handleBadStrips"))
+  {
+
+    if(handleBadStrips_){
+      badStripToken_ = esConsumes<SiStripBadStrip, SiPhase2OuterTrackerBadStripRcd>();
+    }
+    produces<Phase2TrackerCluster1DCollectionNew>();
+  }
 
 /*
      * Clusterize the events
@@ -79,6 +97,25 @@ void Phase2TrackerClusterizer::produce(edm::Event& event, const edm::EventSetup&
   // Go over all the modules
   for (const auto& DSViter : *digis) {
     DetId detId(DSViter.detId());
+
+    std::cout << "DSViter.detId(): " << DSViter.detId() << std::endl;
+
+    if (handleBadStrips_){
+      const auto& badStripPayload_ = &eventSetup.getData(badStripToken_);
+
+      SiStripBadStrip::Range range = badStripPayload_->getRange(DSViter.detId());
+      
+      for (std::vector<unsigned int>::const_iterator badChannel = range.first; badChannel != range.second; ++badChannel) {
+        
+        const auto decoded = badStripPayload_->decodePhase2(*badChannel);
+        const auto firstStrip = decoded.firstStrip;
+        const auto range = decoded.range;
+        
+        std::cout << "firstStrip:" << firstStrip << ";range:" << range << std::endl;
+        
+      }  // loop over the range
+    
+    }
 
     Phase2TrackerCluster1DCollectionNew::FastFiller clusters(*outputClusters, DSViter.detId());
     Phase2TrackerClusterizerSequentialAlgorithm algo;
@@ -151,6 +188,7 @@ void Phase2TrackerClusterizer::fillDescriptions(edm::ConfigurationDescriptions& 
   edm::ParameterSetDescription desc;
   desc.add<unsigned int>("maxClusterSize", 0);
   desc.add<unsigned int>("maxNumberClusters", 0);
+  desc.add<bool>("handleBadStrips", false); // handling bad strips
   desc.add<edm::InputTag>("src", edm::InputTag("mix", "Tracker"));
   descriptions.add("default_phase2TrackerClusterizer", desc);
 }
