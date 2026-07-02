@@ -41,6 +41,8 @@ private:
   std::unique_ptr<Phase2TrackerClusterizerAlgorithm> clusterizer_;
 #endif
   edm::EDGetTokenT<edm::DetSetVector<Phase2TrackerDigi> > token_;
+
+  unsigned int maxClusterSize_;
 };
 
 /*
@@ -53,8 +55,10 @@ Phase2TrackerClusterizer::Phase2TrackerClusterizer(edm::ParameterSet const& conf
       clusterizer_(new Phase2TrackerClusterizerAlgorithm(conf.getParameter<unsigned int>("maxClusterSize"),
                                                          conf.getParameter<unsigned int>("maxNumberClusters"))),
 #endif
-      token_(consumes<edm::DetSetVector<Phase2TrackerDigi> >(conf.getParameter<edm::InputTag>("src"))) {
-  produces<Phase2TrackerCluster1DCollectionNew>();
+      token_(consumes<edm::DetSetVector<Phase2TrackerDigi> >(conf.getParameter<edm::InputTag>("src"))),
+      maxClusterSize_(conf.getParameter<unsigned int>("maxClusterSize")) {
+    
+    produces<Phase2TrackerCluster1DCollectionNew>();
 }
 
 /*
@@ -78,10 +82,9 @@ void Phase2TrackerClusterizer::produce(edm::Event& event, const edm::EventSetup&
 
   // Go over all the modules
   for (const auto& DSViter : *digis) {
-    DetId detId(DSViter.detId());
 
     Phase2TrackerCluster1DCollectionNew::FastFiller clusters(*outputClusters, DSViter.detId());
-    Phase2TrackerClusterizerSequentialAlgorithm algo;
+    Phase2TrackerClusterizerSequentialAlgorithm algo(maxClusterSize_);
     algo.clusterizeDetUnit(DSViter, clusters);
     if (clusters.empty())
       clusters.abort();

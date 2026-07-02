@@ -8,8 +8,16 @@
 
 class Phase2TrackerClusterizerSequentialAlgorithm {
 public:
+
+  Phase2TrackerClusterizerSequentialAlgorithm(const unsigned int maxClusterSize): maxClusterSize_(maxClusterSize) {}
+
   inline void clusterizeDetUnit(const edm::DetSet<Phase2TrackerDigi>&,
                                 Phase2TrackerCluster1DCollectionNew::FastFiller&) const;
+
+private:
+
+  const unsigned int maxClusterSize_;
+
 };
 
 void Phase2TrackerClusterizerSequentialAlgorithm::clusterizeDetUnit(
@@ -28,7 +36,13 @@ void Phase2TrackerClusterizerSequentialAlgorithm::clusterizeDetUnit(
     if (!(previous < digi))
       std::cout << "not ordered " << previous << ' ' << digi << std::endl;
 #endif
-    if (digi - previous == 1) {
+    
+    if (sizeCluster == maxClusterSize_){
+      clusters.push_back(Phase2TrackerCluster1D(firstDigi, sizeCluster, HIPbit));
+      firstDigi = digi;
+      HIPbit = digi.overThreshold();
+      sizeCluster = 1;
+    } else if (digi - previous == 1) {
       HIPbit |= digi.overThreshold();
       ++sizeCluster;
     } else {
