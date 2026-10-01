@@ -13,7 +13,7 @@
 #include "DataFormats/Common/interface/DetSetVector.h"
 #include "DataFormats/Phase2TrackerCluster/interface/Phase2TrackerCluster1D.h"
 
-// #include "Phase2TrackerReclusterizerAlgorithm.h"
+#include "Phase2TrackerReclusterizerAlgorithm.h"
 
 class Phase2TrackerReclusterizer : public edm::stream::EDProducer<> {
 public:
@@ -51,20 +51,13 @@ void Phase2TrackerReclusterizer::produce(edm::Event& event, const edm::EventSetu
     // Loops over each module
     for (const auto& inputClustersModuleIter : *inputClustersFullDet){
         
-        // need to look a bit into this API
         Phase2TrackerCluster1DCollectionNew::FastFiller clusterFiller(*outputClustersFullDet, inputClustersModuleIter.detId());
-
-
-        // TODO: create Reclusterizer algorithm class and
         
-        // TODO: fix compilation errors
-        
-        // Phase2TrackerReclusterizerAlgorithm algo;
-        // algo.reclusterize(inputClustersModuleIter, clusterFiller);
+        Phase2TrackerReclusterizerAlgorithm algo;
+        algo.reclusterize(inputClustersModuleIter, clusterFiller);
 
-        // why this ?
         if (clusterFiller.empty()) clusterFiller.abort();
-
+        
     }
 
     outputClustersFullDet->shrink_to_fit();
