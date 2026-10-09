@@ -15,6 +15,10 @@
 
 #include "Phase2TrackerReclusterizerAlgorithm.h"
 
+// to access bad strips
+#include "CondFormats/DataRecord/interface/SiPhase2OuterTrackerCondDataRecords.h"
+#include "CondFormats/SiStripObjects/interface/SiStripBadStrip.h"
+
 class Phase2TrackerReclusterizer : public edm::stream::EDProducer<> {
 public:
 
@@ -32,11 +36,22 @@ private:
     // to edmNew::DetSetVector<Phase2TrackerCluster1D>
     edm::EDGetTokenT<Phase2TrackerCluster1DCollectionNew> token_;
 
+    // bad strip access
+    const bool handleBadStrips_;
+    const int maxBadStrips_;
+    // <type of object from the payload, record name>
+    edm::ESGetToken<SiStripBadStrip, SiPhase2OuterTrackerBadStripRcd> badStripToken_;
+
 };
 
 Phase2TrackerReclusterizer::Phase2TrackerReclusterizer(edm::ParameterSet const& conf)
     :
-        token_(consumes<Phase2TrackerCluster1DCollectionNew>(conf.getParameter<edm::InputTag>("src"))) {
+        token_(consumes<Phase2TrackerCluster1DCollectionNew>(conf.getParameter<edm::InputTag>("src"))),
+        handleBadStrips_(conf.getParameter<bool>("handleBadStrips")),
+        maxBadStrips_(conf.getParameter<int>("maxBadStrips")) {
+
+            badStripToken_ = esConsumes<SiStripBadStrip, SiPhase2OuterTrackerBadStripRcd>();
+
             produces<Phase2TrackerCluster1DCollectionNew>();
         }
 
@@ -48,13 +63,15 @@ void Phase2TrackerReclusterizer::produce(edm::Event& event, const edm::EventSetu
 
     auto outputClustersFullDet = std::make_unique<Phase2TrackerCluster1DCollectionNew>();
 
+    const SiStripBadStrip* badStripPayload_ = &eventSetup.getData(badStripToken_);
+
     // Loops over each module
     for (const auto& inputClustersModuleIter : *inputClustersFullDet){
         
         Phase2TrackerCluster1DCollectionNew::FastFiller clusterFiller(*outputClustersFullDet, inputClustersModuleIter.detId());
         
         Phase2TrackerReclusterizerAlgorithm algo;
-        algo.reclusterize(inputClustersModuleIter, clusterFiller);
+        algo.reclusterize(inputClustersModuleIter, clusterFiller, handleBadStrips_, badStripPayload_, maxBadStrips_);
 
         if (clusterFiller.empty()) clusterFiller.abort();
         
@@ -68,6 +85,8 @@ void Phase2TrackerReclusterizer::produce(edm::Event& event, const edm::EventSetu
 void Phase2TrackerReclusterizer::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
   edm::ParameterSetDescription desc;
   desc.add<edm::InputTag>("src", edm::InputTag("siPhase2ClustersUnrefined"));
+  desc.add<bool>("handleBadStrips", true);
+  desc.add<int>("maxBadStrips", 1);
   descriptions.add("default_phase2TrackerReclusterizer", desc);
 }
 

@@ -6,5 +6,6 @@ from RecoLocalTracker.SiPhase2Reclusterizer.default_phase2TrackerReclusterizer_c
 
 siPhase2Clusters = default_phase2TrackerReclusterizer.clone(
     src = "siPhase2ClustersUnrefined",
-    # maxBadCells = 0
+    handleBadStrips = True,
+    maxBadStrips = 1
 )

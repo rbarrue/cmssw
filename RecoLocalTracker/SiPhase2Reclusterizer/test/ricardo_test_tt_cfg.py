@@ -38,6 +38,11 @@ process.TFileService = cms.Service('TFileService',
 process.load('RecoLocalTracker.SiPhase2Clusterizer.phase2TrackerClusterizer_cfi')
 process.siPhase2ClustersUnrefined.maxClusterSize = 8
 process.load('RecoLocalTracker.SiPhase2Reclusterizer.phase2TrackerReclusterizer_cfi')
+# fake strip source loaded via the Geometry files
+process.SiPhase2OTFakeBadStripsESSource.badComponentsFraction = 0.05
+# flag to handle bad strips
+process.siPhase2Clusters.handleBadStrips = True
+process.siPhase2Clusters.maxBadStrips = 1
 process.load('RecoLocalTracker.Phase2TrackerRecHits.Phase2StripCPEESProducer_cfi')
 #process.load('RecoLocalTracker.Phase2TrackerRecHits.Phase2StripCPEGeometricESProducer_cfi')
 process.load('RecoLocalTracker.Phase2TrackerRecHits.Phase2TrackerRecHits_cfi')
