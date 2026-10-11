@@ -89,7 +89,6 @@ void Phase2TrackerClusterMergerAlgorithm::mergeDetUnit(
             sizeCluster = sizeCluster + badStripBlockSize + ci->size();
             HIPbit |= ci->threshold();
 
-            std::cout << "Merging cluster with edge " << firstClusterEdge << " to cluster with first strip " << nextClusterFirst << " separated by bad strip block with channel " << badStripChannel << " and size " << badStripBlockSize << std::endl;
           }           
 
           break;
